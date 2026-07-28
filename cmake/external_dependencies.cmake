@@ -8,12 +8,12 @@ include(FetchContent)
 # ---------------------------------------------------------------------------
 option(FETCH_DEPENDENCIES_WITH_CMAKE
     "Fetch dependencies with CMake: OFF, ON, or MISSING"
-    OFF
+    MISSING
 )
 message(STATUS "🔧 FETCH_DEPENDENCIES_WITH_CMAKE: ${FETCH_DEPENDENCIES_WITH_CMAKE}")
 
 if(FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "OFF")
-    set(FIND_PACKAGE_OPTIONS REQUIRED CONFIG)
+    set(FIND_PACKAGE_OPTIONS REQUIRED)
 else()
     set(FIND_PACKAGE_OPTIONS QUIET)
 endif()
@@ -31,8 +31,8 @@ set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
 set(SPARROW_COMPUTE_XTL_VERSION         "0.8.0")
 set(SPARROW_COMPUTE_XSIMD_VERSION       "13.2.0")
 set(SPARROW_COMPUTE_XTENSOR_VERSION     "0.27.1")
-set(SPARROW_COMPUTE_SPARROW_VERSION     "2.5.0")
-set(SPARROW_COMPUTE_GTEST_VERSION       "v1.15.2")
+set(SPARROW_COMPUTE_SPARROW_VERSION     "main")
+set(SPARROW_COMPUTE_GTEST_VERSION       "v1.17.0")
 set(SPARROW_COMPUTE_CODSPEED_CPP_VERSION "v2.4.0")
 
 # ---------------------------------------------------------------------------

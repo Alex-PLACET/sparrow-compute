@@ -76,7 +76,7 @@ target_include_directories(sparrow-compute INTERFACE
 )
 # Enable xtensor SIMD acceleration for consumers of sparrow-compute.
 target_compile_definitions(sparrow-compute INTERFACE XTENSOR_USE_XSIMD)
-target_link_libraries(sparrow-compute INTERFACE xtensor xsimd sparrow::sparrow)
+target_link_libraries(sparrow-compute INTERFACE xtensor xsimd sparrow)
 
 # ---------------------------------------------------------------------------
 # Demo executable

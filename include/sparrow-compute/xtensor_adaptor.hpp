@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 
 #include <xtensor/containers/xadapt.hpp>
@@ -35,7 +36,12 @@ namespace sparrow::compute
     [[nodiscard]] auto as_xtensor_view(const sparrow::primitive_array<T>& arr)
     {
         const auto data = detail::view_data(arr);
-        return xt::adapt(xt::xbuffer_adaptor<const T*, xt::no_ownership>(data.data(), data.size()));
+        return xt::adapt(
+            data.data(),
+            data.size(),
+            xt::no_ownership(),
+            std::array<std::size_t, 1>{data.size()}
+        );
     }
 
     /// Build a sparrow primitive array from an xtensor expression
@@ -43,18 +49,17 @@ namespace sparrow::compute
     template <sparrow::primitive_type T, class E>
     [[nodiscard]] sparrow::primitive_array<T> to_sparrow(E&& expr)
     {
-        using alloc_type = typename sparrow::u8_buffer<T>::default_allocator;
-        alloc_type alloc;
-
         const auto n = static_cast<std::size_t>(expr.shape()[0]);
-
-        auto* raw_bytes = alloc.allocate(n * sizeof(T));
-        T* typed = reinterpret_cast<T*>(raw_bytes);
-
-        auto view = xt::adapt(xt::xbuffer_adaptor<T*, xt::no_ownership>(typed, n));
+        // xtensor overwrites every element below before ownership transfers to
+        // primitive_array, so avoid value-initializing this output buffer.
+        sparrow::u8_buffer<T> buffer(n, sparrow::uninitialized_t{});
+        auto view = xt::adapt(
+            buffer.data(),
+            n,
+            xt::no_ownership(),
+            std::array<std::size_t, 1>{n}
+        );
         xt::noalias(view) = std::forward<E>(expr);
-
-        sparrow::u8_buffer<T> buf(typed, n, alloc);
-        return sparrow::primitive_array<T>(std::move(buf), n, /*nullable=*/false);
+        return sparrow::primitive_array<T>(std::move(buffer), n, /*nullable=*/false);
     }
 }  // namespace sparrow::compute

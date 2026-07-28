@@ -6,7 +6,8 @@
 
 #include <sparrow/primitive_array.hpp>
 
-#include "sparrow-compute/arithmetic.hpp"
+#include "sparrow-compute/math.hpp"
+#include "sparrow-compute/operators.hpp"
 
 namespace
 {
@@ -43,15 +44,17 @@ namespace
         print("a        ", a);
         print("b        ", b);
 
-        auto sum = sparrow::compute::add(a, b);
-        auto diff = sparrow::compute::subtract(a, b);
-        auto prod = sparrow::compute::multiply(a, b);
-        auto quot = sparrow::compute::divide(a, b);
+        auto sum = a + b;
+        auto diff = a - b;
+        auto prod = a * b;
+        auto quot = a / b;
 
-        print("a + b    ", sum);
-        print("a - b    ", diff);
-        print("a * b    ", prod);
-        print("a / b    ", quot);
+        print("a + b    ", sparrow::compute::eval(sum));
+        print("a - b    ", sparrow::compute::eval(diff));
+        print("a * b    ", sparrow::compute::eval(prod));
+        print("a / b    ", sparrow::compute::eval(quot));
+        print("sqrt(a)  ", sparrow::compute::eval(sparrow::compute::sqrt(sparrow::compute::as_expression(a))));
+        print("sin(a)   ", sparrow::compute::eval(sparrow::compute::sin(sparrow::compute::as_expression(a))));
     }
 
     void demo_ints()
@@ -62,10 +65,10 @@ namespace
 
         print("a        ", a);
         print("b        ", b);
-        print("a + b    ", sparrow::compute::add(a, b));
-        print("a - b    ", sparrow::compute::subtract(a, b));
-        print("a * b    ", sparrow::compute::multiply(a, b));
-        print("a / b    ", sparrow::compute::divide(a, b));
+        print("a + b    ", sparrow::compute::eval(a + b));
+        print("a - b    ", sparrow::compute::eval(a - b));
+        print("a * b    ", sparrow::compute::eval(a * b));
+        print("a / b    ", sparrow::compute::eval(a / b));
     }
 }  // namespace
 
