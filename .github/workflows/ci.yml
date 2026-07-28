@@ -14,14 +14,15 @@ defaults:
 jobs:
   build-and-test:
     name: Build and test
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-sparrow-compilation-linux
 
     steps:
       - name: Install GCC
-        uses: egor-tensin/setup-gcc@v2
+        if: matrix.compiler == 'gcc'
+        id: install_cc
+        uses: rlalik/setup-cpp-compiler@v2
         with:
-          version: 16
-          platform: x64
+          compiler: gcc-${{matrix.version}}
 
       - name: Checkout
         uses: actions/checkout@v7
