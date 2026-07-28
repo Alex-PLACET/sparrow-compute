@@ -14,7 +14,8 @@ defaults:
 jobs:
   benchmarks:
     name: Run benchmarks
-    runs-on: namespace-profile-sparrow-compilation-linux
+    runs-on: namespace-profile-sparrow-compilation-linux;container.privileged=true;container.host-pid-namespace=true
+    steps:
     permissions:
       contents: read
       id-token: write
