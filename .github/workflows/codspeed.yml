@@ -43,7 +43,7 @@ jobs:
         run: cmake --build build --target sparrow-compute_bench
 
       - name: Run CodSpeed benchmarks
-        uses: CodSpeedHQ/action@v4
+        uses: CodSpeedHQ/action@v5
         with:
           mode: simulation
           run: ./build/sparrow-compute_bench
