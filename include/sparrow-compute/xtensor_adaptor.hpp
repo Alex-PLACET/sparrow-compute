@@ -17,6 +17,15 @@ namespace sparrow::compute
 {
     namespace detail
     {
+        template <class T>
+        concept supports_uninitialized_u8_buffer = requires {
+            typename sparrow::u8_buffer<T>::uninitialized_t;
+            sparrow::u8_buffer<T>(
+                std::size_t{},
+                typename sparrow::u8_buffer<T>::uninitialized_t{}
+            );
+        };
+
         /// Get a raw pointer to the contiguous value buffer of a
         /// sparrow primitive array.
         template <sparrow::primitive_type T>
@@ -51,8 +60,22 @@ namespace sparrow::compute
     {
         const auto n = static_cast<std::size_t>(expr.shape()[0]);
         // xtensor overwrites every element below before ownership transfers to
-        // primitive_array, so avoid value-initializing this output buffer.
-        sparrow::u8_buffer<T> buffer(n, sparrow::uninitialized_t{});
+        // primitive_array. Use uninitialized output storage when the linked
+        // Sparrow version supports it; retain compatibility with older releases.
+        auto buffer = [&]
+        {
+            if constexpr (detail::supports_uninitialized_u8_buffer<T>)
+            {
+                return sparrow::u8_buffer<T>(
+                    n,
+                    typename sparrow::u8_buffer<T>::uninitialized_t{}
+                );
+            }
+            else
+            {
+                return sparrow::u8_buffer<T>(n);
+            }
+        }();
         auto view = xt::adapt(
             buffer.data(),
             n,
