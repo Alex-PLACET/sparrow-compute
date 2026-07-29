@@ -14,18 +14,17 @@ defaults:
 jobs:
   benchmarks:
     name: Run benchmarks
-    runs-on: namespace-profile-sparrow-compilation-linux;container.privileged=true;container.host-pid-namespace=true
+    runs-on: namespace-profile-sparrow-compilation-linux-next;container.privileged=true;container.host-pid-namespace=true
     permissions:
       contents: read
       id-token: write
 
     steps:
       - name: Install GCC
-        if: matrix.compiler == 'gcc'
         id: install_cc
         uses: rlalik/setup-cpp-compiler@v2
         with:
-          compiler: gcc-${{matrix.version}}
+          compiler: gcc-16
 
       - name: Checkout
         uses: actions/checkout@v7

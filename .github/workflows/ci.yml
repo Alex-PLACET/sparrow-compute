@@ -14,15 +14,14 @@ defaults:
 jobs:
   build-and-test:
     name: Build and test
-    runs-on: namespace-profile-sparrow-compilation-linux
+    runs-on: namespace-profile-sparrow-compilation-linux-next
 
     steps:
       - name: Install GCC
-        if: matrix.compiler == 'gcc'
         id: install_cc
         uses: rlalik/setup-cpp-compiler@v2
         with:
-          compiler: gcc-${{matrix.version}}
+          compiler: gcc-16
 
       - name: Checkout
         uses: actions/checkout@v7
