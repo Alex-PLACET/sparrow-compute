@@ -20,12 +20,6 @@ jobs:
       id-token: write
 
     steps:
-      - name: Install GCC
-        id: install_cc
-        uses: rlalik/setup-cpp-compiler@v2
-        with:
-          compiler: gcc-15
-
       - name: Checkout
         uses: actions/checkout@v7
 
