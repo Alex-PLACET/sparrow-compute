@@ -18,7 +18,6 @@ namespace sparrow::compute
     using xt::operator|;
     using xt::operator^;
     using xt::operator~;
-    using xt::operator!=;
     using xt::operator<;
     using xt::operator<=;
     using xt::operator>;
@@ -78,16 +77,4 @@ namespace sparrow::compute
 
 }
 
-namespace xt
-{
-    // xtensor reserves its existing operator!= overload for optional
-    // expressions. This constrained overload supplies elementwise inequality
-    // for its ordinary expression types.
-    template <class E1, class E2>
-        requires std::is_base_of_v<xexpression<E1>, E1>
-              && std::is_base_of_v<xexpression<E2>, E2>
-    [[nodiscard]] auto operator!=(const xexpression<E1>& lhs, const xexpression<E2>& rhs)
-    {
-        return not_equal(lhs.derived_cast(), rhs.derived_cast());
-    }
-}
+
