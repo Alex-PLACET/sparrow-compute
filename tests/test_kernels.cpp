@@ -189,14 +189,15 @@ TEST(Expressions, AllImportedOperatorsEvaluate)
     expect_values(sparrow::compute::eval(~lhs),             (std::vector<int32_t>{~6, ~5, ~4}));
 
     const auto equal = sparrow::compute::equal(lhs, rhs);
-    expect_values(sparrow::compute::eval(lhs != rhs), (std::vector<bool>{true, true, true}));
+    const auto not_equal = sparrow::compute::not_equal(lhs, rhs);
+    expect_values(sparrow::compute::eval(not_equal), (std::vector<bool>{true, true, true}));
     expect_values(sparrow::compute::eval(lhs < rhs),    (std::vector<bool>{false, false, false}));
     expect_values(sparrow::compute::eval(lhs <= rhs), (std::vector<bool>{false, false, false}));
     expect_values(sparrow::compute::eval(lhs > rhs), (std::vector<bool>{true, true, true}));
     expect_values(sparrow::compute::eval(lhs >= rhs), (std::vector<bool>{true, true, true}));
     expect_values(sparrow::compute::eval(equal), (std::vector<bool>{false, false, false}));
     expect_values(sparrow::compute::eval(sparrow::compute::not_equal(lhs, rhs)), (std::vector<bool>{true, true, true}));
-    expect_values(sparrow::compute::eval((lhs > rhs) && (lhs != rhs)), (std::vector<bool>{true, true, true}));
+    expect_values(sparrow::compute::eval((lhs > rhs) && not_equal), (std::vector<bool>{true, true, true}));
     expect_values(sparrow::compute::eval((lhs < rhs) || sparrow::compute::equal(lhs, rhs)), (std::vector<bool>{false, false, false}));
     expect_values(sparrow::compute::eval(!(lhs > rhs)), (std::vector<bool>{false, false, false}));
 }
