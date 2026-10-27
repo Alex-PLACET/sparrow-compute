@@ -1,10 +1,44 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(sparrow-compute LANGUAGES C CXX)
+set(SPARROW_COMPUTE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
+set(
+    SPARROW_COMPUTE_VERSION_HEADER
+    "${SPARROW_COMPUTE_INCLUDE_DIR}/sparrow-compute/config/sparrow_compute_version.hpp"
+)
+
+# Versioning
+# ==========
+file(
+    STRINGS "${SPARROW_COMPUTE_VERSION_HEADER}" sparrow_compute_version_defines
+    REGEX "constexpr int SPARROW_COMPUTE_VERSION_(MAJOR|MINOR|PATCH)"
+)
+foreach(ver ${sparrow_compute_version_defines})
+    if(ver MATCHES "constexpr int SPARROW_COMPUTE_VERSION_(MAJOR|MINOR|PATCH) = ([0-9]+);$")
+        set(SPARROW_COMPUTE_VERSION_${CMAKE_MATCH_1} "${CMAKE_MATCH_2}")
+    endif()
+endforeach()
+
+if(
+    NOT DEFINED SPARROW_COMPUTE_VERSION_MAJOR
+    OR NOT DEFINED SPARROW_COMPUTE_VERSION_MINOR
+    OR NOT DEFINED SPARROW_COMPUTE_VERSION_PATCH
+)
+    message(FATAL_ERROR "Could not parse the version from ${SPARROW_COMPUTE_VERSION_HEADER}")
+endif()
+
+project(
+    sparrow-compute
+    VERSION
+        "${SPARROW_COMPUTE_VERSION_MAJOR}.${SPARROW_COMPUTE_VERSION_MINOR}.${SPARROW_COMPUTE_VERSION_PATCH}"
+    LANGUAGES C CXX
+)
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
-message(STATUS "🔧 sparrow-compute: C++20 project with sparrow + xtensor compute kernels")
+message(
+    STATUS
+    "🔧 sparrow-compute v${PROJECT_VERSION}: C++20 project with sparrow + xtensor compute kernels"
+)
 
 # ---------------------------------------------------------------------------
 # Global settings
@@ -72,7 +106,7 @@ include(external_dependencies)
 # ---------------------------------------------------------------------------
 add_library(sparrow-compute INTERFACE)
 target_include_directories(sparrow-compute INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${SPARROW_COMPUTE_INCLUDE_DIR}>
 )
 # Enable xtensor SIMD acceleration for consumers of sparrow-compute.
 target_compile_definitions(sparrow-compute INTERFACE XTENSOR_USE_XSIMD)
