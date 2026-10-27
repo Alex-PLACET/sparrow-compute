@@ -1,0 +1,184 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Type of version bump'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      custom_version:
+        description: 'Custom version (optional, MAJOR.MINOR.PATCH, overrides version_type)'
+        required: false
+        type: string
+      prerelease:
+        description: 'Create a prerelease'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # The prerelease number is computed from existing tags.
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine version
+        id: version
+        env:
+          VERSION_TYPE: ${{ inputs.version_type }}
+          CUSTOM_VERSION: ${{ inputs.custom_version }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+
+          if [ "${GITHUB_REF_TYPE}" != "branch" ]; then
+            echo "Error: the release workflow must be run from a branch" >&2
+            exit 1
+          fi
+
+          VERSION_FILE="include/sparrow-compute/config/sparrow_compute_version.hpp"
+          if [ ! -f "${VERSION_FILE}" ]; then
+            echo "Error: ${VERSION_FILE} not found" >&2
+            exit 1
+          fi
+
+          read_version() {
+            local name="$1"
+            local value
+            value=$(sed -n -E \
+              "s/^.*constexpr int SPARROW_COMPUTE_VERSION_${name} = ([0-9]+);.*$/\1/p" \
+              "${VERSION_FILE}")
+            if [ -z "${value}" ]; then
+              echo "Error: could not read SPARROW_COMPUTE_VERSION_${name} from ${VERSION_FILE}" >&2
+              exit 1
+            fi
+            printf '%s\n' "${value}"
+          }
+
+          CURRENT_MAJOR=$(read_version MAJOR)
+          CURRENT_MINOR=$(read_version MINOR)
+          CURRENT_PATCH=$(read_version PATCH)
+          echo "Current version: ${CURRENT_MAJOR}.${CURRENT_MINOR}.${CURRENT_PATCH}"
+
+          if [ -n "${CUSTOM_VERSION}" ]; then
+            BASE_VERSION="${CUSTOM_VERSION}"
+            if ! [[ "${BASE_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Error: custom_version must use the MAJOR.MINOR.PATCH format" >&2
+              exit 1
+            fi
+          else
+            case "${VERSION_TYPE}" in
+              "major")
+                BASE_VERSION="$((CURRENT_MAJOR + 1)).0.0"
+                ;;
+              "minor")
+                BASE_VERSION="${CURRENT_MAJOR}.$((CURRENT_MINOR + 1)).0"
+                ;;
+              "patch")
+                BASE_VERSION="${CURRENT_MAJOR}.${CURRENT_MINOR}.$((CURRENT_PATCH + 1))"
+                ;;
+              *)
+                echo "Error: unsupported version_type '${VERSION_TYPE}'" >&2
+                exit 1
+                ;;
+            esac
+          fi
+
+          if [ "${PRERELEASE}" = "true" ]; then
+            mapfile -t EXISTING_TAGS < <(git tag -l "${BASE_VERSION}_r*" | sort -V)
+            if [ "${#EXISTING_TAGS[@]}" -eq 0 ]; then
+              PRERELEASE_NUM=0
+            else
+              LAST_TAG="${EXISTING_TAGS[-1]}"
+              PRERELEASE_NUM="${LAST_TAG##*_r}"
+              PRERELEASE_NUM=$((10#${PRERELEASE_NUM} + 1))
+            fi
+            FINAL_VERSION="${BASE_VERSION}_r${PRERELEASE_NUM}"
+            IS_PRERELEASE=true
+          else
+            FINAL_VERSION="${BASE_VERSION}"
+            IS_PRERELEASE=false
+          fi
+
+          if git rev-parse -q --verify "refs/tags/${FINAL_VERSION}" >/dev/null; then
+            echo "Error: tag ${FINAL_VERSION} already exists" >&2
+            exit 1
+          fi
+
+          echo "Final version: ${FINAL_VERSION}"
+          echo "version=${FINAL_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "base_version=${BASE_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "is_prerelease=${IS_PRERELEASE}" >> "${GITHUB_OUTPUT}"
+
+      - name: Update version header
+        if: ${{ steps.version.outputs.is_prerelease == 'false' }}
+        env:
+          BASE_VERSION: ${{ steps.version.outputs.base_version }}
+        run: |
+          set -euo pipefail
+
+          VERSION_FILE="include/sparrow-compute/config/sparrow_compute_version.hpp"
+          IFS='.' read -r NEW_MAJOR NEW_MINOR NEW_PATCH <<< "${BASE_VERSION}"
+
+          sed -i -E \
+            -e "s/(SPARROW_COMPUTE_VERSION_MAJOR = )[0-9]+/\1${NEW_MAJOR}/" \
+            -e "s/(SPARROW_COMPUTE_VERSION_MINOR = )[0-9]+/\1${NEW_MINOR}/" \
+            -e "s/(SPARROW_COMPUTE_VERSION_PATCH = )[0-9]+/\1${NEW_PATCH}/" \
+            "${VERSION_FILE}"
+
+          git add "${VERSION_FILE}"
+
+          if git diff --cached --quiet; then
+            echo "Version header already at ${BASE_VERSION}; nothing to commit."
+          else
+            git commit -m "Release version ${BASE_VERSION}"
+          fi
+
+      - name: Create tag
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          git tag -a "${VERSION}" -m "Release version ${VERSION}"
+
+      - name: Push changes and tag
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "${VERSION}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: "Release ${{ steps.version.outputs.version }}"
+          prerelease: ${{ steps.version.outputs.is_prerelease }}
+          generate_release_notes: true
+          draft: false
