@@ -202,10 +202,6 @@ if(FETCH_DEPENDENCIES_WITH_CMAKE STREQUAL "ON"
         EXCLUDE_FROM_ALL
     )
     FetchContent_MakeAvailable(sparrow)
-
-    # sparrow exports the namespaced target sparrow::sparrow when installed,
-    # but its build tree only defines the plain "sparrow" target. Provide the
-    # namespaced alias so consumers can link consistently in both cases.
     if(TARGET sparrow AND NOT TARGET sparrow::sparrow)
         add_library(sparrow::sparrow ALIAS sparrow)
     endif()
